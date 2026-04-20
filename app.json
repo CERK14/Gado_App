@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "GadoApp",
+    "slug": "gadoapp",
+    "scheme": "gadoapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1F7A3A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gadoapp.app"
+    },
+    "android": {
+      "package": "com.gadoapp.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1F7A3A"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
