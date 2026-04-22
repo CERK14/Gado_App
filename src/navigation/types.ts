@@ -3,6 +3,11 @@ export type RootStackParamList = {
   Settings: undefined;
 };
 
+export type AuthStackParamList = {
+  Welcome: undefined;
+  EmailAuth: { mode: 'signIn' | 'signUp' };
+};
+
 export type TabsParamList = {
   Início: undefined;
   Pesar: undefined;

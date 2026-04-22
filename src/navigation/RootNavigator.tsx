@@ -1,12 +1,29 @@
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabsNavigator } from './TabsNavigator';
+import { AuthNavigator } from './AuthNavigator';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <AuthNavigator />;
+  }
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -28,3 +45,12 @@ export function RootNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+});
