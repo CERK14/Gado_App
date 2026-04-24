@@ -11,7 +11,7 @@ export type AuthStackParamList = {
 
 export type TabsParamList = {
   Início: undefined;
-  Pesar: undefined;
+  Pesar: { loteId?: string; codigo?: string } | undefined;
   Lotes: undefined;
   Relatórios: undefined;
 };
