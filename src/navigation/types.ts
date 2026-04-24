@@ -2,6 +2,7 @@ export type RootStackParamList = {
   Tabs: undefined;
   Settings: undefined;
   LoteDetail: { loteId: string };
+  AnimalHistorico: { animalId: string };
 };
 
 export type AuthStackParamList = {

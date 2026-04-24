@@ -4,6 +4,7 @@ import { TabsNavigator } from './TabsNavigator';
 import { AuthNavigator } from './AuthNavigator';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LoteDetailScreen } from '../screens/LoteDetailScreen';
+import { AnimalHistoricoScreen } from '../screens/AnimalHistoricoScreen';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import type { RootStackParamList } from './types';
@@ -47,6 +48,11 @@ export function RootNavigator() {
         name="LoteDetail"
         component={LoteDetailScreen}
         options={{ title: 'Lote' }}
+      />
+      <Stack.Screen
+        name="AnimalHistorico"
+        component={AnimalHistoricoScreen}
+        options={{ title: 'Histórico do animal' }}
       />
     </Stack.Navigator>
   );
