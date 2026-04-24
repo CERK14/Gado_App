@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { Unidade } from '../utils/peso';
+import { configRepo } from '../db/repos';
+import type { ConfigPatch } from '../db/repos/configRepo';
 
 export type Plano = 'free' | 'pro';
 
@@ -18,12 +20,10 @@ type AppState = {
   hydrated: boolean;
 
   setUser: (user: User) => void;
-  setUnidade: (unidade: Unidade) => void;
-  setMetaGMD: (valor: number) => void;
-  setPesoAbate: (valor: number) => void;
-  setPrecoKg: (valor: number) => void;
   setPlano: (plano: Plano) => void;
   setHydrated: (v: boolean) => void;
+  hydrateFromDb: () => Promise<void>;
+  atualizarConfig: (patch: ConfigPatch) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -36,10 +36,27 @@ export const useAppStore = create<AppState>((set) => ({
   hydrated: false,
 
   setUser: (user) => set({ user }),
-  setUnidade: (unidade) => set({ unidade }),
-  setMetaGMD: (metaGMD) => set({ metaGMD }),
-  setPesoAbate: (pesoAbate) => set({ pesoAbate }),
-  setPrecoKg: (precoKg) => set({ precoKg }),
   setPlano: (plano) => set({ plano }),
   setHydrated: (hydrated) => set({ hydrated }),
+
+  hydrateFromDb: async () => {
+    const cfg = await configRepo.getConfig();
+    set({
+      unidade: cfg.unidade,
+      metaGMD: cfg.meta_gmd,
+      pesoAbate: cfg.peso_abate,
+      precoKg: cfg.preco_kg,
+      hydrated: true,
+    });
+  },
+
+  atualizarConfig: async (patch) => {
+    const cfg = await configRepo.updateConfig(patch);
+    set({
+      unidade: cfg.unidade,
+      metaGMD: cfg.meta_gmd,
+      pesoAbate: cfg.peso_abate,
+      precoKg: cfg.preco_kg,
+    });
+  },
 }));

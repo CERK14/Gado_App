@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { initDatabase } from './src/db/sqlite';
 import { logSupabaseStatus } from './src/services/supabase';
+import { useAppStore } from './src/store/appStore';
 import { colors, typography } from './src/theme';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
     (async () => {
       try {
         await initDatabase();
+        await useAppStore.getState().hydrateFromDb();
         logSupabaseStatus();
         setReady(true);
       } catch (e) {
