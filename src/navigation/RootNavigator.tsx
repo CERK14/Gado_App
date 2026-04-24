@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabsNavigator } from './TabsNavigator';
 import { AuthNavigator } from './AuthNavigator';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { LoteDetailScreen } from '../screens/LoteDetailScreen';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import type { RootStackParamList } from './types';
@@ -41,6 +42,11 @@ export function RootNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{ title: 'Configurações' }}
+      />
+      <Stack.Screen
+        name="LoteDetail"
+        component={LoteDetailScreen}
+        options={{ title: 'Lote' }}
       />
     </Stack.Navigator>
   );

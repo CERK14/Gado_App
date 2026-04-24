@@ -14,6 +14,15 @@ export async function countAnimaisAtivos(): Promise<number> {
   return row?.c ?? 0;
 }
 
+export async function countByLote(lote_id: string): Promise<number> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) as c FROM animais WHERE lote_id = ? AND deleted_at IS NULL;',
+    lote_id
+  );
+  return row?.c ?? 0;
+}
+
 export async function listByLote(lote_id: string): Promise<AnimalRow[]> {
   const db = await getDatabase();
   return db.getAllAsync<AnimalRow>(

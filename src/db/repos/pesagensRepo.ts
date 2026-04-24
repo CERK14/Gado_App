@@ -15,6 +15,17 @@ export async function listByAnimal(animal_id: string): Promise<PesagemRow[]> {
   );
 }
 
+export async function listByLote(lote_id: string): Promise<PesagemRow[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<PesagemRow>(
+    `SELECT p.* FROM pesagens p
+       JOIN animais a ON a.id = p.animal_id AND a.deleted_at IS NULL
+      WHERE a.lote_id = ?
+      ORDER BY p.animal_id, p.data ASC;`,
+    lote_id
+  );
+}
+
 export async function countByAnimal(animal_id: string): Promise<number> {
   const db = await getDatabase();
   const row = await db.getFirstAsync<{ c: number }>(
