@@ -6,6 +6,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../services/supabase';
+import { initRevenueCat, logoutRevenueCat } from '../services/revenuecat';
 import { env, isGoogleConfigured, isSupabaseConfigured } from '../config/env';
 import { useAppStore } from '../store/appStore';
 
@@ -34,12 +35,24 @@ export function useAuth() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setState((s) => ({ ...s, session: data.session, loading: false }));
-      setUser(data.session?.user ? { id: data.session.user.id, email: data.session.user.email ?? undefined } : null);
+      const u = data.session?.user
+        ? { id: data.session.user.id, email: data.session.user.email ?? undefined }
+        : null;
+      setUser(u);
+      if (u) initRevenueCat(u.id).catch(() => {});
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setState((s) => ({ ...s, session }));
-      setUser(session?.user ? { id: session.user.id, email: session.user.email ?? undefined } : null);
+      const u = session?.user
+        ? { id: session.user.id, email: session.user.email ?? undefined }
+        : null;
+      setUser(u);
+      if (u) {
+        initRevenueCat(u.id).catch(() => {});
+      } else {
+        logoutRevenueCat().catch(() => {});
+      }
     });
 
     return () => {

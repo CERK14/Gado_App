@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Button } from '../components/Button';
 import { MetaVsRealBar } from '../components/MetaVsRealBar';
+import type { RootStackParamList } from '../navigation/types';
 import {
   computeGanhoTotal,
   computeMetaVsReal,
@@ -24,6 +27,7 @@ function formatReais(v: number): string {
 }
 
 export function ReportsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const unidade: Unidade = useAppStore((s) => s.unidade);
   const metaGMD = useAppStore((s) => s.metaGMD);
   const precoKg = useAppStore((s) => s.precoKg);
@@ -118,6 +122,7 @@ export function ReportsScreen() {
           <View style={styles.bloqueio}>
             <Text style={styles.bloqueioEmoji}>🔒</Text>
             <Text style={styles.bloqueioMsg}>{acessoProjecao.mensagem}</Text>
+            <Button label="Fazer upgrade" onPress={() => navigation.navigate('Upgrade')} />
           </View>
         ) : projecoes.length === 0 ? (
           <Text style={styles.vazio}>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { NumberField } from '../components/NumberField';
 import { UnitToggle } from '../components/UnitToggle';
@@ -8,8 +10,10 @@ import { useAppStore } from '../store/appStore';
 import { restorePurchases } from '../services/revenuecat';
 import { colors, radius, spacing, typography } from '../theme';
 import type { Unidade } from '../utils/peso';
+import type { RootStackParamList } from '../navigation/types';
 
 export function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const auth = useAuth();
   const user = useAppStore((s) => s.user);
   const unidade = useAppStore((s) => s.unidade);
@@ -107,6 +111,9 @@ export function SettingsScreen() {
           <Text style={styles.label}>Plano atual</Text>
           <Text style={styles.valor}>{plano === 'pro' ? 'Pro' : 'Gratuito'}</Text>
         </View>
+        {plano === 'free' ? (
+          <Button label="Fazer upgrade" onPress={() => navigation.navigate('Upgrade')} />
+        ) : null}
         <Button
           label={restaurando ? 'Restaurando...' : 'Restaurar compra'}
           variant="secondary"

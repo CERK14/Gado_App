@@ -13,6 +13,7 @@ import { Button } from '../../components/Button';
 import { animaisRepo, pesagensRepo } from '../../db/repos';
 import type { AnimalRow, LoteRow, PesagemRow } from '../../db/types';
 import { useAppStore } from '../../store/appStore';
+import { podeCriarAnimal, podeRegistrarPesagem } from '../../utils/freemium';
 import { colors, radius, spacing, typography } from '../../theme';
 import { formatPeso, labelPeso, type Unidade } from '../../utils/peso';
 
@@ -26,6 +27,7 @@ type Props = {
   contagemSessao: number;
   codigoInicial?: string;
   onCancelar: () => void;
+  onBloqueio: (mensagem: string) => void;
   onRegistrado: (args: {
     animal: AnimalRow;
     pesagem: PesagemRow;
@@ -51,9 +53,11 @@ export function RegistrarAnimalStep({
   contagemSessao,
   codigoInicial,
   onCancelar,
+  onBloqueio,
   onRegistrado,
 }: Props) {
   const unidade: Unidade = useAppStore((s) => s.unidade);
+  const plano = useAppStore((s) => s.plano);
   const [codigo, setCodigo] = useState(codigoInicial ?? '');
   const [sugestoes, setSugestoes] = useState<AnimalRow[]>([]);
   const [animalSelecionado, setAnimalSelecionado] = useState<AnimalRow | null>(null);
@@ -127,11 +131,25 @@ export function RegistrarAnimalStep({
         }
         animal = await animaisRepo.findByCodigoNoLote(lote.id, cod);
         if (!animal) {
+          const totalAtivos = await animaisRepo.countAnimaisAtivos();
+          const guardaAnimal = podeCriarAnimal(plano, totalAtivos);
+          if (!guardaAnimal.permitido) {
+            setBusy(false);
+            onBloqueio(guardaAnimal.mensagem);
+            return;
+          }
           animal = await animaisRepo.createAnimal(lote.id, cod);
         }
       }
 
       const pesagemExistentes = await pesagensRepo.countByAnimal(animal.id);
+      const guardaPesagem = podeRegistrarPesagem(plano, pesagemExistentes);
+      if (!guardaPesagem.permitido) {
+        setBusy(false);
+        onBloqueio(guardaPesagem.mensagem);
+        return;
+      }
+
       const pesagem = await pesagensRepo.createPesagem({
         animal_id: animal.id,
         valor,

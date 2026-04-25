@@ -11,12 +11,14 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { LoteCard } from '../components/LoteCard';
+import { UpgradePrompt } from '../components/UpgradePrompt';
 import { CreateLoteSheet } from './lotes/CreateLoteSheet';
 import { DeleteLoteSheet } from './lotes/DeleteLoteSheet';
 import { listLotesComStats, type LoteComStats } from '../db/analytics/loteStats';
 import { animaisRepo } from '../db/repos';
 import type { LoteRow } from '../db/types';
 import { useAppStore } from '../store/appStore';
+import { podeCriarLote } from '../utils/freemium';
 import { colors, spacing, typography } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -29,11 +31,13 @@ export function LotsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const unidade = useAppStore((s) => s.unidade);
   const metaGMD = useAppStore((s) => s.metaGMD);
+  const plano = useAppStore((s) => s.plano);
 
   const [stats, setStats] = useState<LoteComStats[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [bloqueio, setBloqueio] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const carregar = useCallback(async () => {
@@ -51,6 +55,15 @@ export function LotsScreen() {
   async function pedirExclusao(lote: LoteRow) {
     const qtd = await animaisRepo.countByLote(lote.id);
     setDeleteTarget({ lote, qtdAnimais: qtd });
+  }
+
+  function tentarCriarLote() {
+    const guarda = podeCriarLote(plano, stats.length);
+    if (!guarda.permitido) {
+      setBloqueio(guarda.mensagem);
+      return;
+    }
+    setShowCreate(true);
   }
 
   async function handleRefresh() {
@@ -88,7 +101,7 @@ export function LotsScreen() {
         )}
         ListFooterComponent={
           <View style={styles.footer}>
-            <Button label="+ Criar novo lote" onPress={() => setShowCreate(true)} />
+            <Button label="+ Criar novo lote" onPress={tentarCriarLote} />
           </View>
         }
       />
@@ -98,6 +111,12 @@ export function LotsScreen() {
         totalLotes={stats.length}
         onClose={() => setShowCreate(false)}
         onCreated={carregar}
+      />
+
+      <UpgradePrompt
+        visible={bloqueio !== null}
+        mensagem={bloqueio ?? ''}
+        onClose={() => setBloqueio(null)}
       />
 
       <DeleteLoteSheet

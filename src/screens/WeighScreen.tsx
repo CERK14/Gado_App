@@ -5,10 +5,10 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { SelecionarLoteStep } from './pesagem/SelecionarLoteStep';
 import { RegistrarAnimalStep } from './pesagem/RegistrarAnimalStep';
 import { ResultadoStep } from './pesagem/ResultadoStep';
-import { animaisRepo, lotesRepo, pesagensRepo } from '../db/repos';
+import { UpgradePrompt } from '../components/UpgradePrompt';
+import { animaisRepo, lotesRepo } from '../db/repos';
 import type { AnimalRow, LoteRow, PesagemRow } from '../db/types';
 import { getLastLoteId, setLastLoteId } from '../utils/lastLote';
-import { podeCriarAnimal, podeRegistrarPesagem } from '../utils/freemium';
 import { useAppStore } from '../store/appStore';
 import { colors } from '../theme';
 import type { TabsParamList } from '../navigation/types';
@@ -25,7 +25,6 @@ type ResultadoPayload = {
 export function WeighScreen() {
   const route = useRoute<RouteProp<TabsParamList, 'Pesar'>>();
   const navigation = useNavigation<BottomTabNavigationProp<TabsParamList, 'Pesar'>>();
-  const plano = useAppStore((s) => s.plano);
 
   const [step, setStep] = useState<Step>('selecionar');
   const [lotes, setLotes] = useState<LoteRow[]>([]);
@@ -35,6 +34,7 @@ export function WeighScreen() {
   const [resultado, setResultado] = useState<ResultadoPayload | null>(null);
   const [sessionCount, setSessionCount] = useState(0);
   const [carregando, setCarregando] = useState(true);
+  const [bloqueio, setBloqueio] = useState<string | null>(null);
   const paramConsumido = useRef(false);
 
   const carregar = useCallback(async () => {
@@ -75,23 +75,8 @@ export function WeighScreen() {
     setUltimoLoteId(lote.id);
   }
 
-  async function handleRegistrado(args: { animal: AnimalRow; pesagem: PesagemRow; ehPrimeira: boolean }) {
+  function handleRegistrado(args: { animal: AnimalRow; pesagem: PesagemRow; ehPrimeira: boolean }) {
     if (!loteAtivo) return;
-
-    const totalAnimais = await animaisRepo.countAnimaisAtivos();
-    const pesagensAntes = await pesagensRepo.countByAnimal(args.animal.id);
-
-    if (args.ehPrimeira) {
-      const guarda = podeCriarAnimal(plano, totalAnimais - 1);
-      if (!guarda.permitido) {
-        Alert.alert('Plano gratuito', guarda.mensagem);
-      }
-    }
-    const guardaPesagem = podeRegistrarPesagem(plano, pesagensAntes - 1);
-    if (!guardaPesagem.permitido) {
-      Alert.alert('Plano gratuito', guardaPesagem.mensagem);
-    }
-
     setResultado({
       lote: loteAtivo,
       animal: args.animal,
@@ -154,7 +139,13 @@ export function WeighScreen() {
           contagemSessao={sessionCount}
           codigoInicial={codigoInicial}
           onCancelar={trocarLote}
+          onBloqueio={setBloqueio}
           onRegistrado={handleRegistrado}
+        />
+        <UpgradePrompt
+          visible={bloqueio !== null}
+          mensagem={bloqueio ?? ''}
+          onClose={() => setBloqueio(null)}
         />
       </View>
     );

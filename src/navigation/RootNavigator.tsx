@@ -5,6 +5,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { LoteDetailScreen } from '../screens/LoteDetailScreen';
 import { AnimalHistoricoScreen } from '../screens/AnimalHistoricoScreen';
+import { UpgradeScreen } from '../screens/UpgradeScreen';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme';
 import type { RootStackParamList } from './types';
@@ -53,6 +54,11 @@ export function RootNavigator() {
         name="AnimalHistorico"
         component={AnimalHistoricoScreen}
         options={{ title: 'Histórico do animal' }}
+      />
+      <Stack.Screen
+        name="Upgrade"
+        component={UpgradeScreen}
+        options={{ title: 'GadoApp Pro' }}
       />
     </Stack.Navigator>
   );
