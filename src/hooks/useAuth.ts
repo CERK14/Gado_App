@@ -3,11 +3,10 @@ import { Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../services/supabase';
 import { initRevenueCat, logoutRevenueCat } from '../services/revenuecat';
-import { env, isGoogleConfigured, isSupabaseConfigured } from '../config/env';
+import { isSupabaseConfigured } from '../config/env';
 import { useAppStore } from '../store/appStore';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -18,6 +17,11 @@ export type AuthState = {
   signingIn: boolean;
 };
 
+function extrairCode(url: string): string | null {
+  const m = url.match(/[?&#]code=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     session: null,
@@ -25,12 +29,6 @@ export function useAuth() {
     signingIn: false,
   });
   const setUser = useAppStore((s) => s.setUser);
-
-  const [, , promptGoogle] = Google.useIdTokenAuthRequest({
-    webClientId: env.googleWebClientId || undefined,
-    iosClientId: env.googleIosClientId || env.googleWebClientId || undefined,
-    androidClientId: env.googleAndroidClientId || env.googleWebClientId || undefined,
-  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -93,48 +91,60 @@ export function useAuth() {
     }
   }
 
-  async function signInWithGoogle() {
+  async function signInWithProviderViaSupabase(provider: 'google' | 'apple') {
     await guardSupabase();
-    if (!isGoogleConfigured) {
-      throw new Error('Google Sign-In não configurado. Preencha EXPO_PUBLIC_GOOGLE_*_CLIENT_ID no .env.');
-    }
     setState((s) => ({ ...s, signingIn: true }));
     try {
-      const result = await promptGoogle();
-      if (result?.type !== 'success') {
-        throw new Error('Login com Google cancelado.');
-      }
-      const idToken = result.params?.id_token;
-      if (!idToken) throw new Error('Token Google ausente.');
-      const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
+      const redirectTo = AuthSession.makeRedirectUri({ scheme: 'gadoapp' });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
       if (error) throw error;
+      if (!data?.url) throw new Error('Não foi possível iniciar o login.');
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type !== 'success') {
+        throw new Error('Login cancelado.');
+      }
+
+      const code = extrairCode(result.url);
+      if (!code) throw new Error('Resposta sem código de autorização.');
+
+      const { error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+      if (codeErr) throw codeErr;
     } finally {
       setState((s) => ({ ...s, signingIn: false }));
     }
   }
 
+  async function signInWithGoogle() {
+    await signInWithProviderViaSupabase('google');
+  }
+
   async function signInWithApple() {
-    await guardSupabase();
-    if (Platform.OS !== 'ios') {
-      throw new Error('Entrar com Apple só está disponível em iPhone.');
+    if (Platform.OS === 'ios') {
+      await guardSupabase();
+      setState((s) => ({ ...s, signingIn: true }));
+      try {
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        if (!credential.identityToken) throw new Error('Token Apple ausente.');
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: credential.identityToken,
+        });
+        if (error) throw error;
+      } finally {
+        setState((s) => ({ ...s, signingIn: false }));
+      }
+      return;
     }
-    setState((s) => ({ ...s, signingIn: true }));
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      if (!credential.identityToken) throw new Error('Token Apple ausente.');
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken,
-      });
-      if (error) throw error;
-    } finally {
-      setState((s) => ({ ...s, signingIn: false }));
-    }
+    await signInWithProviderViaSupabase('apple');
   }
 
   async function signOut() {
