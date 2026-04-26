@@ -28,8 +28,8 @@ export function useAuth() {
 
   const [, , promptGoogle] = Google.useIdTokenAuthRequest({
     webClientId: env.googleWebClientId || undefined,
-    iosClientId: env.googleIosClientId || undefined,
-    androidClientId: env.googleAndroidClientId || undefined,
+    iosClientId: env.googleIosClientId || env.googleWebClientId || undefined,
+    androidClientId: env.googleAndroidClientId || env.googleWebClientId || undefined,
   });
 
   useEffect(() => {
