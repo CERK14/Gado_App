@@ -96,6 +96,8 @@ export function useAuth() {
     setState((s) => ({ ...s, signingIn: true }));
     try {
       const redirectTo = AuthSession.makeRedirectUri({ scheme: 'gadoapp' });
+      console.log('[oauth] redirectTo=', redirectTo);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo, skipBrowserRedirect: true },
@@ -103,16 +105,27 @@ export function useAuth() {
       if (error) throw error;
       if (!data?.url) throw new Error('Não foi possível iniciar o login.');
 
+      console.log('[oauth] abrindo URL=', data.url);
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      console.log('[oauth] result.type=', result.type);
+      if (result.type === 'success') {
+        console.log('[oauth] result.url=', result.url);
+      }
+
       if (result.type !== 'success') {
-        throw new Error('Login cancelado.');
+        throw new Error(`Login cancelado (tipo: ${result.type}).`);
       }
 
       const code = extrairCode(result.url);
+      console.log('[oauth] code extraído=', code ? `${code.slice(0, 8)}…` : 'NÃO ENCONTRADO');
       if (!code) throw new Error('Resposta sem código de autorização.');
 
-      const { error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
-      if (codeErr) throw codeErr;
+      const { data: sessData, error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+      if (codeErr) {
+        console.log('[oauth] exchange ERRO:', codeErr.message);
+        throw codeErr;
+      }
+      console.log('[oauth] sessão criada para', sessData.user?.email);
     } finally {
       setState((s) => ({ ...s, signingIn: false }));
     }
