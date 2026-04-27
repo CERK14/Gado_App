@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
@@ -22,6 +22,23 @@ function extrairCode(url: string): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+async function processarDeepLink(url: string | null) {
+  if (!url) return;
+  const code = extrairCode(url);
+  if (!code) return;
+  console.log('[oauth] deep link recebido com code:', code.slice(0, 8) + '…');
+  try {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      console.log('[oauth] exchange ERRO:', error.message);
+      return;
+    }
+    console.log('[oauth] sessão criada para', data.user?.email);
+  } catch (e) {
+    console.log('[oauth] exchange exception:', e);
+  }
+}
+
 export function useAuth() {
   const [state, setState] = useState<AuthState>({
     session: null,
@@ -29,6 +46,14 @@ export function useAuth() {
     signingIn: false,
   });
   const setUser = useAppStore((s) => s.setUser);
+
+  useEffect(() => {
+    Linking.getInitialURL().then(processarDeepLink);
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      processarDeepLink(url);
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -108,24 +133,10 @@ export function useAuth() {
       console.log('[oauth] abrindo URL=', data.url);
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       console.log('[oauth] result.type=', result.type);
-      if (result.type === 'success') {
-        console.log('[oauth] result.url=', result.url);
-      }
 
-      if (result.type !== 'success') {
-        throw new Error(`Login cancelado (tipo: ${result.type}).`);
+      if (result.type === 'success' && result.url) {
+        await processarDeepLink(result.url);
       }
-
-      const code = extrairCode(result.url);
-      console.log('[oauth] code extraído=', code ? `${code.slice(0, 8)}…` : 'NÃO ENCONTRADO');
-      if (!code) throw new Error('Resposta sem código de autorização.');
-
-      const { data: sessData, error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
-      if (codeErr) {
-        console.log('[oauth] exchange ERRO:', codeErr.message);
-        throw codeErr;
-      }
-      console.log('[oauth] sessão criada para', sessData.user?.email);
     } finally {
       setState((s) => ({ ...s, signingIn: false }));
     }
